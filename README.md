@@ -1,6 +1,6 @@
-# Capistrano SOA - An extension for Capistrano supporting SOA Services Deployment
-##
-
+# Capistrano SOA 
+   - An extension for Capistrano supporting SOA Services Deployment
+  
 Capistrano SOA let you management services group in SOA architecuture with multi-stage support.
 
 ## Usage
