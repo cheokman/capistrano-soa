@@ -61,22 +61,22 @@ module Capistrano::Ext
       stages.include?(possible_stage_name) ? possible_stage_name : nil
     end
 
-    # 
+    #
     # One Environment with different applications deployment
     # cap integration prj0:subprj0:app0 prj1:subprj0:app1 deploy
-    # cap prj0:subprj0:app0:integration prj0:subprj0:app0:integration deploy 
+    # cap prj0:subprj0:app0:integration prj0:subprj0:app0:integration deploy
     #
     # One environment with one application
-    # cap prj0:subprj0:app0:integration deploy 
-    # 
-    # Different Environments with different applications deployment 
+    # cap prj0:subprj0:app0:integration deploy
+    #
+    # Different Environments with different applications deployment
     # cap prj0:subprj0:app0:integration prj0:subprj0:app0:staging deploy
     #
 
     def parse_args(args, stages, services)
       args = args.dup
       selected_services = []
-      task = nil
+      tasks = nil
       selected_stage = nil
 
       selected_stage = if stages.include?(args.first)
@@ -88,7 +88,8 @@ module Capistrano::Ext
               else
                 nil
               end
-      args.each do |a|
+
+      args.each_with_index do |a, i|
         if selected_stage.nil? && !get_stage_name(a, stages).nil?
           selected_stage = get_stage_name(a, stages)
           _service = get_service_name(a, services)
@@ -97,11 +98,11 @@ module Capistrano::Ext
           _service = get_service_name(a, services)
           selected_services << _service unless selected_services.include?(_service)
         else
-          task = a
+          tasks = args[i..args.length].join(" ")
           break
         end
       end
-      [selected_stage, selected_services.flatten.uniq, task]
+      [selected_stage, selected_services.flatten.uniq, tasks]
     end
 
     def build_task(stage, services, this_task)
@@ -121,7 +122,7 @@ module Capistrano::Ext
 
           task(task_name) do
             services.each do |service|
-              system("cap #{stage} #{service} #{this_task}")
+              system("cap #{stage} #{service} _#{task_name}")
             end
           end  
         end
@@ -145,7 +146,7 @@ module Capistrano::Ext
         config_files = get_config_files(config_root)
         
         set :stages, collect_stages(config_files) unless exists?(:stages)
-      
+
         # build configuration names list
         config_names = get_config_names(config_files,config_root)
 
@@ -160,7 +161,7 @@ module Capistrano::Ext
         stages.each do |s|
           desc "Set the target stage to `#{s}'."
 
-          task(s.to_sym) do            
+          task(s.to_sym) do
             top.set :stage, s.to_sym
           end
         end
