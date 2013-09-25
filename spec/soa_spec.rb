@@ -142,9 +142,25 @@ describe Capistrano::Ext::SOA, "loaded into a configuration" do
     task = "fake:thing"
 
     @configuration.build_task(stage, services, task)
-    puts @configuration.task_list.map {|task| task.name}
-
+    @configuration.find_task("fake:al_thing").should_not be_nil
+    @configuration.find_task("fake:thing").should_not be_nil
   end
+
+  it "should build multiple task with multiple services" do
+    stage = "staging"
+    services = ["a:b", "a:c"]
+    task = "fake:thing fake:foo"
+
+    @configuration.build_task(stage, services, task)
+    @configuration.find_task("fake:al_thing").should_not be_nil
+    @configuration.find_task("fake:thing").should_not be_nil
+
+    @configuration.find_task("fake:al_foo").should_not be_nil
+    @configuration.find_task("fake:foo").should_not be_nil
+  end
+
+
+
   # it "should run one stage and service on load" do
   #   args = ["staging"]
   #   ARGV = args
