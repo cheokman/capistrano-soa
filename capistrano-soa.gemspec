@@ -5,7 +5,7 @@ require "capistrano/version"
 Gem::Specification.new do |s|
 
   s.name        = "capistrano-soa"
-  s.version     =  "0.0.6"
+  s.version     =  "0.0.7"
   s.platform    = Gem::Platform::RUBY
   s.authors     = ["Ben Wu"]
   s.email       = ["wucheokman@gmail.com"]
