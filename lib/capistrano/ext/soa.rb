@@ -108,31 +108,37 @@ module Capistrano::Ext
     def build_task(stage, services, this_task)
 
       if services.size > 1
-        segments = this_task.split(':')
-        if segments.size > 1
-          namespace_names = segments[0, segments.size-1]
-          task_name = segments.last
-        else
-          namespace_names = [segments[0]]
-          task_name = "default"
-        end
-        
-        block = lambda do |parent|
-          alias_task "_#{task_name}".to_sym, task_name.to_sym
+        these_tasks = this_task.split(" ")
 
-          task(task_name) do
-            services.each do |service|
-              system("cap #{stage} #{service} _#{task_name}")
-            end
-          end  
-        end
+        these_tasks.each do |task|
+          next if find_task(task).nil?
 
-        block = namespace_names.reverse.inject(block) do |child, name|
-          lambda do |parent|
-            parent.namespace(name, &child)
+          segments = task.split(':')
+          if segments.size > 1
+            namespace_names = segments[0, segments.size-1]
+            task_name = segments.last
+          else
+            namespace_names = [segments[0]]
+            task_name = "default"
           end
+          
+          block = lambda do |parent|
+            alias_task "al_#{task_name}".to_sym, task_name.to_sym
+
+            task(task_name) do
+              services.each do |service|
+                system("cap #{stage} #{service} #{namespace_names.join(":")}:al_#{task_name}")
+              end
+            end  
+          end
+
+          block = namespace_names.reverse.inject(block) do |child, name|
+            lambda do |parent|
+              parent.namespace(name, &child)
+            end
+          end
+          block.call(top)
         end
-        block.call(top)
       end
     end
 
@@ -235,70 +241,15 @@ module Capistrano::Ext
           block.call(top)
         end
 
-       STDOUT.sync
-        before "deploy:update_code" do
-            print "Updating Code........ "
-            start_spinner()
-        end
-
-        after "deploy:update_code" do
-            stop_spinner()
-            puts "Done.".green
-        end
-
-        before "deploy:cleanup" do
-            print "Cleaning Up.......... "
-            start_spinner()
-        end
-
-        after "deploy:restart" do
-            stop_spinner()
-            puts "Done.".green
-        end
-
-        before "deploy:restart" do
-            print "Restarting .......... "
-            start_spinner()
-        end
-
-        after "deploy:cleanup" do
-            stop_spinner()
-            puts "Done.".green
-        end
-        # spinner stuff
-        @spinner_running = false
-        @chars = ['|', '/', '-', '\\']
-        @spinner = Thread.new do
-          loop do
-            unless @spinner_running
-              Thread.stop
-            end
-            print @chars[0]
-            sleep(0.1)
-            print "\b"
-            @chars.push @chars.shift
-          end
-        end
-
-        def start_spinner
-          @spinner_running = true
-          @spinner.wakeup
-        end
-
-        # stops the spinner and backspaces over last displayed character
-        def stop_spinner
-          @spinner_running = false
-          print "\b"
-        end
-
+       
         on :load do
           services_name = get_services_name(config_names)
 
-          selected_stage, selected_services, selected_task = parse_args(ARGV, stages, services_name)
+          selected_stage, selected_services, selected_tasks = parse_args(ARGV, stages, services_name)
 
           set :stage, selected_stage
           set :services, selected_services
-          build_task(selected_stage, selected_services, selected_task)
+          build_task(selected_stage, selected_services, selected_tasks)
      
           if stages.include?(stage)
             # Execute the specified stage so that recipes required in stage can contribute to task list
@@ -357,6 +308,63 @@ module Capistrano::Ext
         #     end
         #   end
         # end
+
+        STDOUT.sync
+        before "deploy:update_code" do
+            print "Updating Code........ "
+            start_spinner()
+        end
+
+        after "deploy:update_code" do
+            stop_spinner()
+            puts "Done.".green
+        end
+
+        before "deploy:cleanup" do
+            print "Cleaning Up.......... "
+            start_spinner()
+        end
+
+        after "deploy:restart" do
+            stop_spinner()
+            puts "Done.".green
+        end
+
+        before "deploy:restart" do
+            print "Restarting .......... "
+            start_spinner()
+        end
+
+        after "deploy:cleanup" do
+            stop_spinner()
+            puts "Done.".green
+        end
+        # spinner stuff
+        @spinner_running = false
+        @chars = ['|', '/', '-', '\\']
+        @spinner = Thread.new do
+          loop do
+            unless @spinner_running
+              Thread.stop
+            end
+            print @chars[0]
+            sleep(0.1)
+            print "\b"
+            @chars.push @chars.shift
+          end
+        end
+
+        def start_spinner
+          @spinner_running = true
+          @spinner.wakeup
+        end
+
+        # stops the spinner and backspaces over last displayed character
+        def stop_spinner
+          @spinner_running = false
+          print "\b"
+        end
+
       end
 
     end
