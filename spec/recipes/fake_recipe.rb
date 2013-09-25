@@ -13,6 +13,10 @@ require 'capistrano'
                 run ('do inner some stuff')
               end
             end
+            desc "foo and run foo"
+            task :foo do
+              set :cool, "cool"
+            end
             desc "thing and run fake manifests"
             task :thing do
               set :bar, "baz"
