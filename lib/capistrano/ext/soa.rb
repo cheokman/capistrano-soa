@@ -2,6 +2,19 @@ require 'capistrano'
 require 'fileutils'
 require 'colored'
 
+module Capistrano
+ class Configuration
+   module Namespaces
+    def rename_task(new_name, old_name)
+    metaclass = class << self; self; end
+    metaclass.send(:alias_method, new_name.to_s, old_name.to_s)
+    metaclass.send(:remove_method, old_name.to_s)
+    tasks[new_name.to_sym] = tasks.delete(old_name.to_sym)
+    end
+   end
+ end
+end
+
 module Capistrano::Ext
   module SOA
     def get_config_files(config_root)
@@ -106,14 +119,12 @@ module Capistrano::Ext
     end
 
     def build_task(stage, services, this_task)
-
       if services.size > 1
         these_tasks = this_task.split(" ")
+        these_tasks.each do |current_task|
+          next if find_task(current_task).nil?
 
-        these_tasks.each do |task|
-          next if find_task(task).nil?
-
-          segments = task.split(':')
+          segments = current_task.split(':')
           if segments.size > 1
             namespace_names = segments[0, segments.size-1]
             task_name = segments.last
@@ -121,15 +132,21 @@ module Capistrano::Ext
             namespace_names = [segments[0]]
             task_name = "default"
           end
-          
-          block = lambda do |parent|
-            alias_task "al_#{task_name}".to_sym, task_name.to_sym
+          original_task = "original_#{task_name}" 
 
-            task(task_name) do
-              services.each do |service|
-                system("cap #{stage} #{service} #{namespace_names.join(":")}:al_#{task_name}")
-              end
-            end  
+          block = lambda do |parent|
+            before current_task do 
+              logger.debug "find_task:#{task_name}: #{find_task task_name}"
+              rename_task "original_#{task_name}", task_name
+              logger.debug "find_task:#{task_name}: #{find_task task_name}"
+              task(task_name.to_sym) do
+                logger.debug "call..."
+                services.each do |service|
+                  system("cap #{stage} #{service} #{namespace_names.join(":")}:#{task_name}")
+                end
+              end 
+              logger.debug "find_task:#{task_name}: #{find_task task_name}"
+            end 
           end
 
           block = namespace_names.reverse.inject(block) do |child, name|
@@ -364,9 +381,7 @@ module Capistrano::Ext
           @spinner_running = false
           print "\b"
         end
-
       end
-
     end
 
   end
