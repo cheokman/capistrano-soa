@@ -120,6 +120,14 @@ describe Capistrano::Ext::SOA, "loaded into a configuration" do
     task.should == "a:d deploy:start"
   end
 
+  it "should parse one stage, multiple services and task" do
+    args = ["staging","a:b", "a:c", "deploy:start"]
+    selected_stage, selected_services, task = @configuration.parse_args(args, @stages, @services)
+    selected_services.should == ["a:b", "a:c"]
+    selected_stage.should == "staging"
+    task.should == "deploy:start"
+  end
+
   it "should parse single stage with one or more services" do
     args = ["staging","world", "deploy:start"]
     selected_stage, selected_services, task = @configuration.parse_args(args, @stages, @services)
