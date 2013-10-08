@@ -19,4 +19,5 @@ Gem::Specification.new do |s|
   s.extra_rdoc_files = [
     "README.md"
   ]
+  s.license = "MIT"
 end
